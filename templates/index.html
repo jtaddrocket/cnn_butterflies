@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Butterfly Classifier</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+        form {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: inline-block;
+            margin-top: 20px;
+        }
+        input[type="file"], input[type="submit"] {
+            width: 90%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+        input[type="file"] {
+            border: 2px solid #ccc;
+            background-color: #f8f8f8;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        #preview img, #classified img {
+            max-width: 90%;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        h1, h2, h3 {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload an image to classify</h1>
+    <form action="/" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="image/*" onchange="previewFile()">
+        <input type="submit" value="Upload and classify">
+    </form>
+    <div id="preview"></div>
+    {% if prediction %}
+        <h2>Top Prediction: {{ prediction }} (Confidence: {{ confidence | round(2) }}%)</h2>
+        <img src="data:image/jpeg;base64,{{ original_image }}" alt="Classified Image">
+        <h3>Top 5 Predictions:</h3>
+        <div>
+            <canvas id="predictionChart"></canvas>
+        </div>
+    {% endif %}
+
+    <div>
+    <canvas id="predictionChart"></canvas>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var predictionsData = JSON.parse('{{ predictions_json|safe }}');
+    var ctx = document.getElementById('predictionChart').getContext('2d');
+    var predictionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: predictionsData.top_labels,
+            datasets: [{
+                label: 'Probability',
+                data: predictionsData.top_confidences,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            maintainAspectRatio: true,
+            responsive: true
+        }
+    });
+});
+</script>
+
+</body>
+</html>

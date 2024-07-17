@@ -1,21 +1,17 @@
 from flask import Flask, request, render_template, jsonify
-import torch
+import onnxruntime as ort  # Sử dụng ONNX Runtime để thực thi mô hình
 import torchvision.transforms as transforms
 import cv2
 import numpy as np
 import base64
 from io import BytesIO
-from model import CNNModel
-import json  # Import JSON module
+import json
+import torch
 
 app = Flask(__name__)
 
-# Pre-configured device and model settings
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model = CNNModel().to(device)
-checkpoint = torch.load('model.pth', map_location=device)
-model.load_state_dict(checkpoint['model_state_dict'])
-model.eval()
+# Tạo session ONNX Runtime
+ort_session = ort.InferenceSession('model.onnx')
 
 # Define image transformations
 transform = transforms.Compose([
@@ -25,7 +21,7 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
 
-labels = [
+labels = [  # Label tương tự như trên
     'adonis', 'american snoot', 'an 88', 'banded peacock', 'beckers white',
     'black hairstreak', 'cabbage white', 'chestnut', 'clodius parnassian',
     'clouded sulphur', 'copper tail', 'crecent', 'crimson patch',
@@ -47,12 +43,12 @@ def upload_file():
             image = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_UNCHANGED)
             original_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             transformed_image = transform(original_image)
-            transformed_image = torch.unsqueeze(transformed_image, 0)
+            transformed_image = torch.unsqueeze(transformed_image, 0).numpy()  # Chuyển thành numpy array để dùng với ONNX
 
-            with torch.no_grad():
-                outputs = model(transformed_image.to(device))
-                probabilities = torch.nn.functional.softmax(outputs, dim=1)
-                top_probs, top_cats = probabilities.topk(5)
+            # Thực thi mô hình ONNX
+            outputs = ort_session.run(None, {'input': transformed_image})
+            probabilities = torch.nn.functional.softmax(torch.tensor(outputs[0]), dim=1)  # Tính softmax
+            top_probs, top_cats = probabilities.topk(5)
 
             top_labels = [labels[idx] for idx in top_cats[0]]
             top_confidences = top_probs[0].tolist()

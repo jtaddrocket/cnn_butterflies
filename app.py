@@ -7,16 +7,17 @@ import base64
 from io import BytesIO
 import json
 import torch
+from PIL import Image
 
 app = Flask(__name__)
 
 # Tạo session ONNX Runtime
 ort_session = ort.InferenceSession('model.onnx')
+input_name = ort_session.get_inputs()[0].name  # Lấy tên của input tensor
 
 # Define image transformations
 transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize(224),
+    transforms.Resize((224, 224)),  # Chỉnh sửa ở đây để resize cả hai chiều
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
@@ -40,13 +41,12 @@ def upload_file():
     if request.method == 'POST':
         file = request.files['file']
         if file:
-            image = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_UNCHANGED)
-            original_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            transformed_image = transform(original_image)
+            image = Image.open(BytesIO(file.read())).convert("RGB")  # Đọc ảnh và chuyển sang RGB
+            transformed_image = transform(image)
             transformed_image = torch.unsqueeze(transformed_image, 0).numpy()  # Chuyển thành numpy array để dùng với ONNX
 
             # Thực thi mô hình ONNX
-            outputs = ort_session.run(None, {'input': transformed_image})
+            outputs = ort_session.run(None, {input_name: transformed_image})
             probabilities = torch.nn.functional.softmax(torch.tensor(outputs[0]), dim=1)  # Tính softmax
             top_probs, top_cats = probabilities.topk(5)
 
@@ -56,9 +56,8 @@ def upload_file():
             top_predictions = [(label, prob * 100) for label, prob in zip(top_labels, top_confidences)]
 
             buffered = BytesIO()
-            img = cv2.cvtColor(original_image, cv2.COLOR_RGB2BGR)
-            _, buf = cv2.imencode('.jpg', img)
-            image_base64 = base64.b64encode(buf).decode('utf-8')
+            image.save(buffered, format="JPEG")
+            image_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
             # Serialize data before sending to the template
             predictions_json = json.dumps({

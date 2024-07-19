@@ -81,6 +81,99 @@ valid_loader = DataLoader(
 * Model bốn lớp tích chập. Và mỗi lớp tiếp theo có số lượng out_channels gấp đôi so với lớp trước đó.
 * Mỗi lớp tích chập đều được theo sau bởi hàm kích hoạt ReLU và max-pool 2D. Chúng ta chỉ có một lớp tuyến tính với 50 out_features tương ứng với số lượng lớp trong tập dữ liệu. 
 * Điều duy nhất cần lưu ý trong mạng nơ-ron này là kích thước kernel. Hai lớp tích chập đầu tiên có kernel kích thước 5×5, sau đó là lớp có kernel 3×3, và lớp cuối cùng lại có kernel kích thước 5×5.
+* Cấu trúc model CNN được sử dụng trong project:
+<img src="img/model.png" alt="markdown" width="136" height="600"/>
+
+### 3.4. Train và đánh giá mô hình.
+#### 3.4.1. Train.
+* Trong khi đào tạo, ta cần xác định khả năng học của mô hình. Để đánh giá mức độ lỗi (loss) mà mô hình mắc phải, ta sử dụng `nn.CrossEntropyLoss`.
+* Để đào tạo mô hình, cần chấp nhận lỗi và xem cách ta có thể điều chỉnh các trọng số đã nhân với các số của mình để có được lỗi nhỏ nhất. Phương pháp tính toán cách điều chỉnh trọng số và áp dụng nó cho trọng số trong mô hình được lấy ví dụ là Adam. Sử dụng thư viện `torch.optim` để áp dụng phương thức này và cung cấp cho nó các tham số.
+```
+# optimizer
+optimizer = optim.Adam(model.parameters(), lr=lr)
+# loss function
+criterion = nn.CrossEntropyLoss()
+```
+Bắt đầu với tập train.
++ Trước tiên, đặt mô hình ở chế độ đào tạo và sử dụng for loop để duyệt qua mọi hình ảnh.
++ Sau đó, ta có thể tính toán đầu ra của mô hình dựa trên hình ảnh đầu vào và tính độ lỗi giữa kết quả dự đoán của mô hình và nhãn dữ liệu.
++ Tiếp theo, ta áp dụng các điều chỉnh cần thực hiện để giảm lỗi này bằng cách gọi hàm `loss.backward()` và sử dụng trình tối ưu hóa để điều chỉnh trọng số bằng cách gọi `optimizer.step()`.
+Tiếp tục với bộ validation.
+- Đặt mô hình ở chế độ đánh giá và sử dụng for loop để lặp lại tất cả các hình ảnh trong bộ dữ liệu.
+- Lặp lại các bước đã thực hiện cho tập huấn luyện để lấy đầu ra của mô hình và mức độ sai lệch của mô hình so với nhãn thực.
+- Để xác định xem nó đoán đúng bao nhiêu hình, ta kiểm tra xem lớp đoán nào bằng lớp thực. Sau đó, có thể lấy trung bình trên toàn bộ lượt để xác định độ chính xác của mô hình (có bao nhiêu hình ảnh mô hình đoán đúng trên tổng số lượng hình ảnh).
+* Để bắt đầu việc train, ta sử dụng câu lệnh sau trên terminal: ```!python train.py --epochs 70``` (trên Google Colab) hoặc ```python train.py --epochs 70``` (trên IDE).
+
+`--epochs 70` là ví dụ của việc sử dụng thư viện `argparse` giúp ta có thể thay đổi các chỉ số học tập theo yêu cầu cá nhân như learning rate, epoch,...
+#### 3.4.2. Đánh giá mô hình.
+* Để có thể theo dõi trực tiếp kết quả của quá trình train mô hình (train accuracy, validation accuracy,...) ta có thể sử dụng CometML như trong code `train.py`. API key và project name là của cá nhân từng người. Khi việc train bắt đầu, link theo dõi sẽ được hiển thị ở phần kết quả.
+* Hoặc ta có thể sử dụng hàm `save_plots` như trong code `utils.py`, tuy nhiên kết quả sẽ được in và save trong thư mục `outputs` khi quá trình train kết thúc. Vì vậy sẽ có những trường hợp ta sẽ mất kết quả visualize khi thời gian train bị quá hạn (khá rủi ro).
+* Kết quả quá trình train mô hình (được in ra bởi hàm `save_plots`):
+
+![markdown](outputs/accuracy.png)
+
+Nhận xét:
+- Độ chính xác của quá trình huấn luyện (train accuracy) cao hơn so với độ chính xác của quá trình xác thực (validation accuracy) vào cuối quá trình huấn luyện.
+- Mô hình bị overfitting.
+- Tuy nhiên, độ chính xác của quá trình xác thực khá ổn định, không giảm đáng kể, điều này cho thấy mô hình vẫn có khả năng dự đoán khá tốt trên dữ liệu mới.
+
+### 4. Convert Pytorch model to ONNX
+* Trong code `utils.py`, sử dụng hàm `torch.save` để lưu trữ trạng thái của mô hình, bộ tối ưu, và các thông tin liên quan khác vào một tệp tin.
+**Khởi tạo một từ điển chứa các thông tin cần lưu:**
+- 'epoch': epochs: Lưu số lượng epoch đã huấn luyện.
+- 'model_state_dict': model.state_dict(): Lưu trạng thái của mô hình, bao gồm các tham số (weights) và độ lệch (biases) của các lớp trong mô hình.
+- 'optimizer_state_dict': optimizer.state_dict(): Lưu trạng thái của bộ tối ưu (optimizer), bao gồm các tham số và thông tin cần thiết để tiếp tục tối ưu hóa sau này.
+- 'loss': criterion: Lưu giá trị của hàm mất mát (loss function).
+**Khởi tạo một từ điển chứa các thông tin cần lưu:**
+- `torch.save({...}, '../butterflies/outputs/model.pth')`: Lưu từ điển chứa các thông tin cần thiết vào tệp tin model.pth trong thư mục `outputs`.
+* Sau đó, sử dụng hàm `torch.onnx.export` để xuất mô hình đã huấn luyện sang định dạng ONNX:
+```
+import torch
+import torch.onnx
+from model import CNNModel
+
+# Khởi tạo mô hình
+model = CNNModel()
+
+# Tải checkpoint
+checkpoint = torch.load('model.pth', map_location=torch.device('cpu'))
+
+# Tải trọng số mô hình từ checkpoint
+model.load_state_dict(checkpoint['model_state_dict'])
+model.eval()  # Chuyển mô hình sang chế độ đánh giá
+
+
+dummy_input = torch.randn(1, 3, 224, 224)
+
+torch.onnx.export(model, dummy_input, 'model.onnx', verbose=True, input_names=['input'], output_names=['output'])
+```
+### 5. Triển khai PyTorch bằng Python thông qua API với Flask.
+* Việc triển khai được thực hiện qua file `app.py`:
+  - Tạo session ONNX Runtime.
+  - Định nghĩa các phép biến đổi trên ảnh để resize, chuyển đổi thành tensor và chuẩn hoá ảnh.
+  - Định nghĩa các nhãn (labels).
+  - Định nghĩa route chính của ứng dụng Flask:
+  - Đọc và chuyển đổi ảnh sang RGB.
+  - Áp dụng các phép biến đổi đã định nghĩa.
+  - Thêm một chiều batch vào ảnh và chuyển đổi thành numpy array.
+  - Thực thi mô hình ONNX để dự đoán.
+  - Tính xác suất và lấy top 5 dự đoán.
+  - Chuyển đổi ảnh gốc sang định dạng base64 để hiển thị trên web.
+  - Chuyển đổi kết quả dự đoán thành JSON để truyền cho template.
+  - Chạy ứng dụng Flask.
+* Giao diện web:
+![markdown](img/UI.png)
+### 6. Khó khăn và hướng giải quyết.
+### 6.1. Khó khăn.
+- Mô hình bị overfitting.
+- Dữ liệu cho tập validation quá nhỏ so với tập train.
+- Validation accuracy thấp hơn train accuracy (ảo :> )
+- Có thay đổi các siêu tham số như epoch, batch size,... để thí nghiệm nhưng vẫn xảy ra tình trạng overfitting.
+- Chưa nắm rõ nhiều phương pháp tăng cường dữ liệu, hạn chế ở việc sử dụng mỗi `torch.transforms` để tăng cường.
+### 6.2. Hướng giải quyết.
+- Tăng cường dữ liệu, tăng cường dữ liệu, tăng cường dữ liệu!!! Cái gì quan trọng nói 3 lần.
+- Tìm hiểu các kỹ thuật tăng cường dữ liệu.
+- Tinh chỉnh mô hình: tìm hiểu và sử dụng transfer learning và fine-tuning để cải thiện hiệu suất mô hình.
 
 
 

@@ -111,7 +111,7 @@ Tiếp tục với bộ validation.
 * Hoặc ta có thể sử dụng hàm `save_plots` như trong code `utils.py`, tuy nhiên kết quả sẽ được in và save trong thư mục `outputs` khi quá trình train kết thúc. Vì vậy sẽ có những trường hợp ta sẽ mất kết quả visualize khi thời gian train bị quá hạn (khá rủi ro).
 * Kết quả quá trình train mô hình (được in ra bởi hàm `save_plots`):
 
-![markdown](outputs/accuracy.png)
+![markdown](butterflies/outputs/accuracy.png)
 
 Nhận xét:
 - Độ chính xác của quá trình huấn luyện (train accuracy) cao hơn so với độ chính xác của quá trình xác thực (validation accuracy) vào cuối quá trình huấn luyện.

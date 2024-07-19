@@ -164,7 +164,9 @@ torch.onnx.export(model, dummy_input, 'model.onnx', verbose=True, input_names=['
   - Chuyển đổi kết quả dự đoán thành JSON để truyền cho template.
   - Chạy ứng dụng Flask.
 * Giao diện web:
+
 ![markdown](img/UI.png)
+
 ### 6. Khó khăn và hướng giải quyết.
 ### 6.1. Khó khăn.
 - Mô hình bị overfitting.

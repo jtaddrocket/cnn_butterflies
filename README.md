@@ -1,5 +1,6 @@
 ## BÀI TẬP KẾT THÚC LÝ THUYẾT ##
 # BUTTERFLIES & MOTHS IMAGE CLASSIFICATION #
+**LƯU Ý: BẠN ĐỌC NẾU MUỐN CLONE VỀ CHẠY THÌ NÊN ĐIỀU CHỈNH CÁC ĐƯỜNG DẪN TRONG CODE.**
 ### 1. Mô tả project ###
 * Mục tiêu:
   - Sử dụng thư viện Pytorch để training mô hình CNN một cách hiệu quả.
@@ -148,6 +149,7 @@ dummy_input = torch.randn(1, 3, 224, 224)
 torch.onnx.export(model, dummy_input, 'model.onnx', verbose=True, input_names=['input'], output_names=['output'])
 ```
 ### 5. Triển khai PyTorch bằng Python thông qua API với Flask.
+* Nếu không hứng thú với việc triển khai API, ta có thể chạy code `inference.py` để kiểm tra khả năng dự đoán của model.
 * Việc triển khai được thực hiện qua file `app.py`:
   - Tạo session ONNX Runtime.
   - Định nghĩa các phép biến đổi trên ảnh để resize, chuyển đổi thành tensor và chuẩn hoá ảnh.

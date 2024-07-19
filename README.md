@@ -3,7 +3,7 @@
 **LƯU Ý: BẠN ĐỌC NẾU MUỐN CLONE VỀ CHẠY THÌ NÊN ĐIỀU CHỈNH CÁC ĐƯỜNG DẪN TRONG CODE.**
 ### 1. Mô tả project ###
 * Mục tiêu:
-  - Sử dụng thư viện Pytorch để training mô hình CNN một cách hiệu quả.
+  - Sử dụng thư viện Pytorch để training mô hình CNN một cách hiệu quả. (Thư mục `butterflies`)
   - Giải quyết bài toán phân loại 50 loài bướm từ bộ dữ liệu Phân loại hình ảnh 50 loài bướm từ kaggle.
   - Convert Pytorch model to ONNX.
   - Triển khai PyTorch bằng Python thông qua API với Flask.
